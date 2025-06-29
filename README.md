@@ -19,6 +19,7 @@ Kokoro is a frontier TTS model for its size of 82 million parameters (text in/au
   - [Python](#python)
 - [Voices/Samples](#voicessamples)
 - [Quantizations](#quantizations)
+- [Running the Demo](#running-the-demo)
 
 
 ## Usage
@@ -143,3 +144,17 @@ The model is resilient to quantization, enabling efficient high-quality speech s
 | model_uint8f16.onnx (Mixed precision)          | 114       | <audio controls src="https://cdn-uploads.huggingface.co/production/uploads/61b253b7ac5ecaae3d1efe0c/vtZhABzjP0pvGD7dRb5Vr.wav"></audio> |
 | model_q4.onnx (4-bit matmul)                   | 305       | <audio controls src="https://cdn-uploads.huggingface.co/production/uploads/61b253b7ac5ecaae3d1efe0c/8FVn0IJIUfccEBWq8Fnw_.wav"></audio> |
 | model_q4f16.onnx (4-bit matmul & fp16 weights) | 154       | <audio controls src="https://cdn-uploads.huggingface.co/production/uploads/61b253b7ac5ecaae3d1efe0c/7DrgWC_1q00s-wUJuG44X.wav"></audio> |
+
+## Running the Demo
+
+1. Install Node.js if you do not already have it.
+2. Install dependencies:
+```bash
+npm install
+```
+3. Start the server:
+```bash
+npm start
+```
+4. Open `http://localhost:3000` in your browser.
+

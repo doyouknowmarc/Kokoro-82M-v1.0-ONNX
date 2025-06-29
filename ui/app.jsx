@@ -109,49 +109,49 @@ function App() {
   };
 
   return (
-    <div>
-      <h1>Kokoro Speech Synthesis</h1>
-      <div className="controls">
-        <button type="button" onClick={() => setText(t => t + (t && !t.endsWith('\n') ? '\n' : '') + '---\n')}>Audio Split</button>
-        <label>
-          Voice:
+    <div className="dashboard">
+      <aside className="sidebar">
+        <h1>Kokoro TTS</h1>
+        <div className="field">
+          <label>Voice</label>
           <select value={voice} onChange={e => setVoice(e.target.value)}>
             {voices.map(v => (
               <option key={v} value={v}>{v}</option>
             ))}
           </select>
-        </label>
-        <label>
-          Speed:
+        </div>
+        <div className="field">
+          <label>Speed</label>
           <input type="number" step="0.1" min="0.5" max="2" value={speed}
                  onChange={e => setSpeed(e.target.value)} />
-        </label>
-      </div>
-      <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Enter text here" />
-      <div>
-        <button onClick={generate} disabled={loading}>Generate Speech</button>
-        {loading && <span className="loading"> Processing...</span>}
-      </div>
-      {!!audioUrls.length && (
-        <div id="audio-container">
-          {audioUrls.map((url, idx) => (
-            <div key={idx}>
-              <audio controls src={url}></audio>
-              <a href={url} download={`speech_${idx + 1}.wav`}>Download</a>
-            </div>
-          ))}
-          {audioUrls.length > 1 && (
-            <div className="combine">
-              <label>
-                Pause between clips (s):
-                <input type="number" step="0.1" min="0" value={pause}
-                       onChange={e => setPause(e.target.value)} />
-              </label>
-              <button onClick={combineAudios}>Combine &amp; Download</button>
-            </div>
-          )}
         </div>
-      )}
+        <button className="generate" onClick={generate} disabled={loading}>Generate Speech</button>
+      </aside>
+      <main className="main">
+        <textarea value={text} onChange={e => setText(e.target.value)}
+                  placeholder="Enter text here. Use --- to split audio clips" />
+        {loading && <span className="loading">Processing...</span>}
+        {!!audioUrls.length && (
+          <div id="audio-container">
+            {audioUrls.map((url, idx) => (
+              <div key={idx}>
+                <audio controls src={url}></audio>
+                <a href={url} download={`speech_${idx + 1}.wav`}>Download</a>
+              </div>
+            ))}
+            {audioUrls.length > 1 && (
+              <div className="combine">
+                <label>
+                  Pause between clips (s):
+                  <input type="number" step="0.1" min="0" value={pause}
+                         onChange={e => setPause(e.target.value)} />
+                </label>
+                <button onClick={combineAudios}>Combine &amp; Download</button>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
