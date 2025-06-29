@@ -1,7 +1,7 @@
 import express from 'express';
 import { KokoroTTS } from 'kokoro-js';
 import path from 'path';
-import fs from 'fs';
+import fs from 'fs/promises';
 
 const app = express();
 app.use(express.json());
@@ -32,10 +32,22 @@ app.post('/api/generate', async (req, res) => {
   }
   try {
     const tts = await getModel();
-    const audio = await tts.generate(text, { voice, speed });
-    const outPath = path.join(process.cwd(), 'audio.wav');
-    await audio.save(outPath);
-    res.download(outPath, 'speech.wav');
+    const parts = text
+      .split(/\s*---\s*/)
+      .map(t => t.trim())
+      .filter(Boolean);
+
+    const audioBuffers = [];
+    for (let i = 0; i < parts.length; i++) {
+      const audio = await tts.generate(parts[i], { voice, speed });
+      const outPath = path.join(process.cwd(), `audio_${i}.wav`);
+      await audio.save(outPath);
+      const buf = await fs.readFile(outPath);
+      await fs.unlink(outPath);
+      audioBuffers.push(buf.toString('base64'));
+    }
+
+    res.json({ audios: audioBuffers });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to generate audio' });
