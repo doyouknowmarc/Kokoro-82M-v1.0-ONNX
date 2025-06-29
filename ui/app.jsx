@@ -1,6 +1,6 @@
 function App() {
   const [text, setText] = React.useState('');
-  const [audioUrl, setAudioUrl] = React.useState(null);
+  const [audioUrls, setAudioUrls] = React.useState([]);
   const [voices, setVoices] = React.useState([]);
   const [voice, setVoice] = React.useState('');
   const [speed, setSpeed] = React.useState(1);
@@ -19,7 +19,7 @@ function App() {
   }, []);
 
   const generate = async () => {
-    setAudioUrl(null);
+    setAudioUrls([]);
     setLoading(true);
     try {
       const res = await fetch('/api/generate', {
@@ -28,9 +28,15 @@ function App() {
         body: JSON.stringify({ text, voice, speed: parseFloat(speed) })
       });
       if (!res.ok) throw new Error('Failed to generate');
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      setAudioUrl(url);
+      const data = await res.json();
+      const urls = await Promise.all(
+        (data.audios || []).map(async b64 => {
+          const resp = await fetch(`data:audio/wav;base64,${b64}`);
+          const blob = await resp.blob();
+          return URL.createObjectURL(blob);
+        })
+      );
+      setAudioUrls(urls);
     } catch (err) {
       alert(err.message);
     } finally {
@@ -42,6 +48,9 @@ function App() {
     <div>
       <h1>Kokoro Speech Synthesis</h1>
       <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Enter text here" />
+      <div>
+        <button type="button" onClick={() => setText(t => t + (t && !t.endsWith('\n') ? '\n' : '') + '---\n')}>Audio Split</button>
+      </div>
       <div className="controls">
         <label>
           Voice:
@@ -62,12 +71,12 @@ function App() {
         {loading && <span className="loading"> Processing...</span>}
       </div>
       <div id="audio-container">
-        {audioUrl && (
-          <div>
-            <audio controls src={audioUrl}></audio>
-            <a href={audioUrl} download="speech.wav">Download</a>
+        {audioUrls.map((url, idx) => (
+          <div key={idx}>
+            <audio controls src={url}></audio>
+            <a href={url} download={`speech_${idx + 1}.wav`}>Download</a>
           </div>
-        )}
+        ))}
       </div>
     </div>
   );
