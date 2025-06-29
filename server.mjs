@@ -15,14 +15,24 @@ async function getModel() {
   return ttsPromise;
 }
 
+app.get('/api/voices', async (req, res) => {
+  try {
+    const tts = await getModel();
+    res.json({ voices: Object.keys(tts.voices) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to list voices' });
+  }
+});
+
 app.post('/api/generate', async (req, res) => {
-  const { text, voice = 'am_adam' } = req.body || {};
+  const { text, voice = 'am_adam', speed = 1 } = req.body || {};
   if (!text) {
     return res.status(400).json({ error: 'Missing text' });
   }
   try {
     const tts = await getModel();
-    const audio = await tts.generate(text, { voice });
+    const audio = await tts.generate(text, { voice, speed });
     const outPath = path.join(process.cwd(), 'audio.wav');
     await audio.save(outPath);
     res.download(outPath, 'speech.wav');
