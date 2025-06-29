@@ -45,8 +45,10 @@ export default function Home() {
         })
       )
       setAudioUrls(urls)
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err) {
+      if (err instanceof Error) {
+        alert(err.message)
+      }
     } finally {
       setLoading(false)
     }
@@ -54,7 +56,12 @@ export default function Home() {
 
   const combineAudios = async () => {
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const ctx = new (
+        window.AudioContext ||
+        (window as unknown as {
+          webkitAudioContext?: typeof AudioContext
+        }).webkitAudioContext
+      )()
       const decoded = await Promise.all(
         audioUrls.map((url) => fetch(url).then((r) => r.arrayBuffer()).then((b) => ctx.decodeAudioData(b)))
       )
@@ -112,8 +119,10 @@ export default function Home() {
       a.download = "combined.wav"
       a.click()
       setTimeout(() => URL.revokeObjectURL(url), 1000)
-    } catch (err: any) {
-      alert(err.message)
+    } catch (err) {
+      if (err instanceof Error) {
+        alert(err.message)
+      }
     }
   }
 
