@@ -4,7 +4,7 @@ function App() {
   const [voices, setVoices] = React.useState([]);
   const [voice, setVoice] = React.useState('');
   const [speed, setSpeed] = React.useState(1);
-  const [pause, setPause] = React.useState(0.5);
+  const [pause, setPause] = React.useState('0.5');
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
@@ -20,6 +20,7 @@ function App() {
   }, []);
 
   const generate = async () => {
+    if (!text.trim()) return;
     setAudioUrls([]);
     setLoading(true);
     try {
@@ -108,45 +109,98 @@ function App() {
     }
   };
 
+  const wordCount = text.trim().replace(/---/g, '').split(/\s+/).filter(w => w.length > 0).length;
+  const breakCount = (text.match(/---/g) || []).length;
+
+  const downloadAll = () => {
+    audioUrls.forEach((url, idx) => {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `speech_${idx + 1}.wav`;
+      a.click();
+    });
+  };
+
   return (
-    <div className="dashboard">
-      <aside className="sidebar">
-        <h1>Kokoro TTS</h1>
-        <div className="field">
-          <label>Voice</label>
-          <select value={voice} onChange={e => setVoice(e.target.value)}>
-            {voices.map(v => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
+    <div className="container">
+      <div className="header"></div>
+      <main className="content">
+        <div className="input-group">
+          <div className="input-header">
+            <label>Your Text</label>
+            <div className="counts">
+              <span>{wordCount} words</span>
+              {breakCount > 0 && <span>{breakCount} breaks</span>}
+            </div>
+          </div>
+          <textarea
+            placeholder="Start typing or paste your text here. This is where your content will be transformed into natural-sounding speech..."
+            value={text}
+            onChange={e => setText(e.target.value)}
+          />
         </div>
-        <div className="field">
-          <label>Speed</label>
-          <input type="number" step="0.1" min="0.5" max="2" value={speed}
-                 onChange={e => setSpeed(e.target.value)} />
+        <div className="controls">
+          <div className="control">
+            <label>Voice</label>
+            <select value={voice} onChange={e => setVoice(e.target.value)}>
+              {voices.map(v => (
+                <option key={v} value={v}>{v}</option>
+              ))}
+            </select>
+          </div>
+          <div className="control">
+            <label>Speed</label>
+            <div className="speed-range">
+              <input
+                type="range"
+                min="0.25"
+                max="2"
+                step="0.25"
+                value={speed}
+                onChange={e => setSpeed(e.target.value)}
+              />
+              <span>{speed}x</span>
+            </div>
+          </div>
+          <button onClick={generate} disabled={!text.trim() || loading}>
+            {loading ? 'Generating...' : 'Generate Speech'}
+          </button>
         </div>
-        <button className="generate" onClick={generate} disabled={loading}>Generate Speech</button>
-      </aside>
-      <main className="main">
-        <textarea value={text} onChange={e => setText(e.target.value)}
-                  placeholder="Enter text here. Use --- to split audio clips" />
-        {loading && <span className="loading">Processing...</span>}
-        {!!audioUrls.length && (
-          <div id="audio-container">
-            {audioUrls.map((url, idx) => (
-              <div key={idx}>
-                <audio controls src={url}></audio>
-                <a href={url} download={`speech_${idx + 1}.wav`}>Download</a>
-              </div>
-            ))}
+
+        {audioUrls.length > 0 && (
+          <div className="downloads">
+            <div className="downloads-header">
+              <h3>Downloads</h3>
+              <button className="clear" onClick={() => setAudioUrls([])}>Clear</button>
+            </div>
+            <div className="files">
+              {audioUrls.map((url, idx) => (
+                <div className="file" key={idx}>
+                  <div className="info">
+                    <div className="dot"></div>
+                    <span className="name">speech_output_{idx + 1}.wav</span>
+                  </div>
+                  <div className="actions">
+                    <audio controls src={url}></audio>
+                    <a className="download-btn" href={url} download={`speech_${idx + 1}.wav`}>Download</a>
+                  </div>
+                </div>
+              ))}
+            </div>
             {audioUrls.length > 1 && (
-              <div className="combine">
-                <label>
-                  Pause between clips (s):
-                  <input type="number" step="0.1" min="0" value={pause}
-                         onChange={e => setPause(e.target.value)} />
-                </label>
-                <button onClick={combineAudios}>Combine &amp; Download</button>
+              <div className="download-actions">
+                <button className="download-all" onClick={downloadAll}>Download All</button>
+                <div className="combine-controls">
+                  <label>Pause</label>
+                  <select value={pause} onChange={e => setPause(e.target.value)}>
+                    <option value="0">0s</option>
+                    <option value="0.5">0.5s</option>
+                    <option value="1">1s</option>
+                    <option value="2">2s</option>
+                    <option value="3">3s</option>
+                  </select>
+                  <button className="combine-btn" onClick={combineAudios}>Combine</button>
+                </div>
               </div>
             )}
           </div>
