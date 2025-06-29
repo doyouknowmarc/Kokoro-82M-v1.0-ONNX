@@ -18,3 +18,13 @@ button {
 #audio-container {
   margin-top: 20px;
 }
+.controls {
+  margin-top: 10px;
+}
+.controls label {
+  margin-right: 10px;
+}
+.loading {
+  margin-left: 10px;
+  font-style: italic;
+}
