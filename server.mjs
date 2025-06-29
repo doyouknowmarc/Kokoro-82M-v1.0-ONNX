@@ -54,7 +54,9 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-app.use(express.static('ui'));
+// Serve the static Next.js output if it exists
+const frontendPath = path.join(process.cwd(), 'frontend', 'out');
+app.use(express.static(frontendPath));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));

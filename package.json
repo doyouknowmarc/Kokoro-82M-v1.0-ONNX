@@ -5,6 +5,7 @@
   },
   "type": "module",
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "build:frontend": "cd frontend && npm run build && npx next export"
   }
 }
