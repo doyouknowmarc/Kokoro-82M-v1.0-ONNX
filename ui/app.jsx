@@ -4,6 +4,7 @@ function App() {
   const [voices, setVoices] = React.useState([]);
   const [voice, setVoice] = React.useState('');
   const [speed, setSpeed] = React.useState(1);
+  const [pause, setPause] = React.useState(0.5);
   const [loading, setLoading] = React.useState(false);
 
   React.useEffect(() => {
@@ -44,14 +45,74 @@ function App() {
     }
   };
 
+  const combineAudios = async () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const decoded = await Promise.all(
+        audioUrls.map(url => fetch(url).then(r => r.arrayBuffer()).then(b => ctx.decodeAudioData(b)))
+      );
+      if (!decoded.length) return;
+      const sampleRate = decoded[0].sampleRate;
+      const channels = decoded[0].numberOfChannels;
+      const pauseSamples = Math.round(parseFloat(pause) * sampleRate);
+      let total = decoded.reduce((acc, b) => acc + b.length, 0);
+      total += pauseSamples * (decoded.length - 1);
+      const out = ctx.createBuffer(channels, total, sampleRate);
+      let offset = 0;
+      decoded.forEach((buf, i) => {
+        for (let c = 0; c < channels; c++) {
+          out.getChannelData(c).set(buf.getChannelData(c), offset);
+        }
+        offset += buf.length + (i < decoded.length - 1 ? pauseSamples : 0);
+      });
+
+      const encodeWav = audioBuffer => {
+        const numOfChan = audioBuffer.numberOfChannels;
+        const length = audioBuffer.length * numOfChan * 2 + 44;
+        const buffer = new ArrayBuffer(length);
+        const view = new DataView(buffer);
+        const writeString = (v, o, s) => { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); };
+        let o = 0;
+        writeString(view, o, 'RIFF'); o += 4;
+        view.setUint32(o, length - 8, true); o += 4;
+        writeString(view, o, 'WAVE'); o += 4;
+        writeString(view, o, 'fmt '); o += 4;
+        view.setUint32(o, 16, true); o += 4;
+        view.setUint16(o, 1, true); o += 2;
+        view.setUint16(o, numOfChan, true); o += 2;
+        view.setUint32(o, audioBuffer.sampleRate, true); o += 4;
+        view.setUint32(o, audioBuffer.sampleRate * numOfChan * 2, true); o += 4;
+        view.setUint16(o, numOfChan * 2, true); o += 2;
+        view.setUint16(o, 16, true); o += 2;
+        writeString(view, o, 'data'); o += 4;
+        view.setUint32(o, length - o - 4, true); o += 4;
+
+        for (let i = 0; i < audioBuffer.length; i++) {
+          for (let ch = 0; ch < numOfChan; ch++) {
+            const sample = audioBuffer.getChannelData(ch)[i] * 0x7fff;
+            view.setInt16(o, sample < 0 ? sample : sample, true); o += 2;
+          }
+        }
+        return new Blob([buffer], { type: 'audio/wav' });
+      };
+
+      const wavBlob = encodeWav(out);
+      const url = URL.createObjectURL(wavBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'combined.wav';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   return (
     <div>
       <h1>Kokoro Speech Synthesis</h1>
-      <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Enter text here" />
-      <div>
-        <button type="button" onClick={() => setText(t => t + (t && !t.endsWith('\n') ? '\n' : '') + '---\n')}>Audio Split</button>
-      </div>
       <div className="controls">
+        <button type="button" onClick={() => setText(t => t + (t && !t.endsWith('\n') ? '\n' : '') + '---\n')}>Audio Split</button>
         <label>
           Voice:
           <select value={voice} onChange={e => setVoice(e.target.value)}>
@@ -66,18 +127,31 @@ function App() {
                  onChange={e => setSpeed(e.target.value)} />
         </label>
       </div>
+      <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Enter text here" />
       <div>
         <button onClick={generate} disabled={loading}>Generate Speech</button>
         {loading && <span className="loading"> Processing...</span>}
       </div>
-      <div id="audio-container">
-        {audioUrls.map((url, idx) => (
-          <div key={idx}>
-            <audio controls src={url}></audio>
-            <a href={url} download={`speech_${idx + 1}.wav`}>Download</a>
-          </div>
-        ))}
-      </div>
+      {!!audioUrls.length && (
+        <div id="audio-container">
+          {audioUrls.map((url, idx) => (
+            <div key={idx}>
+              <audio controls src={url}></audio>
+              <a href={url} download={`speech_${idx + 1}.wav`}>Download</a>
+            </div>
+          ))}
+          {audioUrls.length > 1 && (
+            <div className="combine">
+              <label>
+                Pause between clips (s):
+                <input type="number" step="0.1" min="0" value={pause}
+                       onChange={e => setPause(e.target.value)} />
+              </label>
+              <button onClick={combineAudios}>Combine &amp; Download</button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
